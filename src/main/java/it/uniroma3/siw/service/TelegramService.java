@@ -1,10 +1,7 @@
 package it.uniroma3.siw.service;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Service
 public class TelegramService {
@@ -16,8 +13,23 @@ public class TelegramService {
         this.botListener = botListener;
     }
 
+    /**
+     * Versione originale, invariata: invia solo testo. Mantenuta per
+     * compatibilita' con eventuali chiamate esistenti senza immagine.
+     */
     @Async
     public void inviaAlertCritico(String targetChatId, String tipoAnomalia, String severita, String dettagli, String videoSorgente) {
+        inviaAlertCritico(targetChatId, tipoAnomalia, severita, dettagli, videoSorgente, null);
+    }
+
+    /**
+     * ❗ NUOVO: overload che accetta i byte dell'immagine del frame. Se
+     * presente, invia una SendPhoto con didascalia (via TelegramBotListener.
+     * inviaFoto); altrimenti ricade sul comportamento originale a solo testo.
+     */
+    @Async
+    public void inviaAlertCritico(String targetChatId, String tipoAnomalia, String severita, String dettagli,
+                                  String videoSorgente, byte[] frameImage) {
         if (targetChatId == null || targetChatId.isEmpty()) return;
 
         String testo = String.format(
@@ -30,8 +42,12 @@ public class TelegramService {
                 tipoAnomalia.replace("_", " "), severita, videoSorgente, dettagli
         );
 
-        // Usiamo il listener per eseguire l'invio fisico
-        botListener.inviaRisposta(targetChatId, testo);
-        System.out.println("✅ [Telegram] Alert inviato con successo!");
+        if (frameImage != null && frameImage.length > 0) {
+            botListener.inviaFoto(targetChatId, testo, frameImage);
+            System.out.println("✅ [Telegram] Alert con foto inviato con successo!");
+        } else {
+            botListener.inviaRisposta(targetChatId, testo);
+            System.out.println("✅ [Telegram] Alert inviato con successo!");
+        }
     }
 }

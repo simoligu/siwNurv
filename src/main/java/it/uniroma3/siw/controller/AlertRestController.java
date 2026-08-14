@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
 
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,14 +45,52 @@ public class AlertRestController {
         SEVERITY_MAP.put("UNKNOWN", 1);
     }
 
+    // ❗ Alias tra le label usate dalla pipeline Python (solo YOLO e background
+    // subtraction) e i valori dell'enum TipoDiAnomalia, per i casi in cui i nomi
+    // non possono coincidere per costruzione (le classi YOLO sono in inglese,
+    // l'enum e' in italiano). Le label del modulo DeepLab (PALO_INCLINATO,
+    // VEGETAZIONE_INVASIVA, SCARTAMENTO_ANOMALO) ora combaciano direttamente
+    // con l'enum e non necessitano di alias.
+    private static final Map<String, TipoDiAnomalia> LABEL_ALIAS = new HashMap<>();
+    static {
+        //--- Modulo DeepLab ---
+        LABEL_ALIAS.put("SCARTAMENTO_ANOMALO", TipoDiAnomalia.DILATAZIONE_FERROVIA);
+        LABEL_ALIAS.put("VEGETAZIONE_INVASIVA", TipoDiAnomalia.VEGETAZIONE_VICINA);
+        // --- Modulo YOLO (ostacoli, label = nome classe COCO in maiuscolo) ---
+        LABEL_ALIAS.put("PERSON", TipoDiAnomalia.PERSONA_SUI_BINARI);
+        LABEL_ALIAS.put("DOG", TipoDiAnomalia.ANIMALE_SUI_BINARI);
+        LABEL_ALIAS.put("CAT", TipoDiAnomalia.ANIMALE_SUI_BINARI);
+        LABEL_ALIAS.put("COW", TipoDiAnomalia.ANIMALE_SUI_BINARI);
+        LABEL_ALIAS.put("HORSE", TipoDiAnomalia.ANIMALE_SUI_BINARI);
+        LABEL_ALIAS.put("SHEEP", TipoDiAnomalia.ANIMALE_SUI_BINARI);
+        LABEL_ALIAS.put("BIRD", TipoDiAnomalia.ANIMALE_SUI_BINARI);
+        LABEL_ALIAS.put("CAR", TipoDiAnomalia.VEICOLO);
+        LABEL_ALIAS.put("TRUCK", TipoDiAnomalia.VEICOLO);
+        LABEL_ALIAS.put("BUS", TipoDiAnomalia.VEICOLO);
+        LABEL_ALIAS.put("MOTORCYCLE", TipoDiAnomalia.VEICOLO);
+        LABEL_ALIAS.put("BICYCLE", TipoDiAnomalia.VEICOLO);
+
+        // --- Modulo background subtraction ---
+        LABEL_ALIAS.put("ANOMALIA_STRUTTURALE", TipoDiAnomalia.ALTRO); // esplicito: nessuna label piu' specifica calza
+    }
+
     // Mappa Label Stringa (Python) su Enum Java in modo robusto
     private TipoDiAnomalia mapLabelToEnum(String label) {
         String normalizedLabel = label.toUpperCase().replace(" ", "_");
 
+        // 1. prova prima l'alias esplicito (copre i casi in cui il nome Python
+        //    non coincide esattamente col nome dell'enum)
+        if (LABEL_ALIAS.containsKey(normalizedLabel)) {
+            return LABEL_ALIAS.get(normalizedLabel);
+        }
+
+        // 2. fallback: prova la corrispondenza automatica diretta (utile per
+        //    label che gia' coincidono esattamente, es. PALO_INCLINATO,
+        //    DERAGLIAMENTO, ecc., senza dover elencare ogni singolo caso sopra)
         try {
             return TipoDiAnomalia.valueOf(normalizedLabel);
         } catch (IllegalArgumentException e) {
-            System.err.println("WARN: Tipo anomalia non trovato per label: " + label);
+            System.err.println("WARN: Tipo anomalia non trovato ne' in LABEL_ALIAS ne' nell'enum per label: " + label);
             return TipoDiAnomalia.ALTRO;
         }
     }
@@ -100,7 +139,19 @@ public class AlertRestController {
                 if (payload.area != null) a.setDescrizione(a.getDescrizione() + " | Area:" + payload.area);
             }
 
-            // 6. Assegnazione Entità
+            // 6. ❗ NUOVO: decodifica l'immagine del frame (JPEG in base64) se presente.
+            // Un base64 malformato non deve far fallire il salvataggio dell'anomalia:
+            // in quel caso si prosegue semplicemente senza immagine.
+            if (payload.getFrameB64() != null && !payload.getFrameB64().isEmpty()) {
+                try {
+                    byte[] frameBytes = Base64.getDecoder().decode(payload.getFrameB64());
+                    a.setFrameImage(frameBytes);
+                } catch (IllegalArgumentException e) {
+                    System.err.println("WARN: frame_b64 non decodificabile, anomalia salvata senza immagine: " + e.getMessage());
+                }
+            }
+
+            // 7. Assegnazione Entità
             if(payload.trattaId != null){
                 Tratta tratta = trattaService.getById(payload.trattaId);
                 a.setTratta(tratta);

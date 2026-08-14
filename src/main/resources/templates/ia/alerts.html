@@ -13,6 +13,18 @@
     <link rel="stylesheet" th:href="@{/css/ia_alerts_custom.css}">
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <link rel="stylesheet" th:href="@{/css/navbarDark.css}">
+
+    <!-- ❗ NUOVO: piccolo stile per la miniatura del frame -->
+    <style>
+        .frame-thumb {
+            width: 64px;
+            height: 64px;
+            object-fit: cover;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid #dee2e6;
+        }
+    </style>
 </head>
 <body>
 
@@ -43,6 +55,8 @@
                         <th>Tipo / Dettagli</th>
                         <th>Confidenza</th>
                         <th>Coordinate BBox</th>
+                        <!-- ❗ NUOVA COLONNA: miniatura del frame, se presente -->
+                        <th>Frame</th>
                         <th>Azioni</th>
                     </tr>
                     </thead>
@@ -99,6 +113,23 @@
                             <span th:unless="${a.w != null and a.w > 0}">
                                 N/A (Strutturale)
                             </span>
+                        </td>
+
+                        <!-- ❗ NUOVA CELLA: miniatura cliccabile del frame, se l'anomalia ne ha uno.
+                             a.frameImage usa il getter gia' esistente getFrameImage() sull'entity
+                             Anomalia (nessuna modifica aggiuntiva necessaria li'). Il controllo
+                             th:if verifica solo che il campo non sia null; i byte veri e propri
+                             vengono caricati dal browser quando richiede l'immagine tramite il
+                             tag <img>, che punta all'endpoint /anomalia/{id}/frame. -->
+                        <td>
+                            <a th:if="${a.frameImage != null}"
+                               th:href="@{'/anomalia/' + ${a.id} + '/frame'}"
+                               target="_blank" title="Apri immagine a dimensione intera">
+                                <img class="frame-thumb"
+                                     th:src="@{'/anomalia/' + ${a.id} + '/frame'}"
+                                     alt="Frame anomalia" />
+                            </a>
+                            <span th:if="${a.frameImage == null}" class="text-muted small">—</span>
                         </td>
 
                         <td>

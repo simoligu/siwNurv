@@ -2,8 +2,6 @@ package it.uniroma3.siw.controller;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.Map;
-
 // Classe per rappresentare il Bounding Box
 class BBoxDto {
     public Integer x;
@@ -30,8 +28,18 @@ public class AlertDtoController {
     public Long trattaId;
     public String chatId;
 
+    // ❗ NUOVO: immagine del frame allegata dalla pipeline Python (JPEG in base64).
+    // Il campo Python si chiama "frame_b64" (snake_case); @JsonProperty mappa
+    // quel nome JSON sulla variabile Java frameB64 senza dover snaturare le
+    // convenzioni di naming Java.
+    @JsonProperty("frame_b64")
+    public String frameB64;
+
     // Getters/Setters omessi per brevità
     public void setChatId(String chatId){ this.chatId = chatId;}
     public String getChatId(){ return chatId;}
+
+    public String getFrameB64(){ return frameB64; }
+    public void setFrameB64(String frameB64){ this.frameB64 = frameB64; }
 
 }

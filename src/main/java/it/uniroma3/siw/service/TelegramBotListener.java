@@ -6,9 +6,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.ByteArrayInputStream;
 import java.util.Optional;
 
 @Component
@@ -68,6 +71,27 @@ public class TelegramBotListener extends TelegramLongPollingBot {
     public void inviaRisposta(String chatId, String testo) {
         try {
             execute(new SendMessage(chatId, testo));
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * ❗ NUOVO: invia una foto con didascalia su Telegram.
+     * Usato per gli alert critici che arrivano con un'immagine del frame
+     * allegata dalla pipeline Python (campo frame_b64 -> byte[] frameImage
+     * su Anomalia). Se l'invio fallisce (rete, token, chatId invalido), viene
+     * loggato ma non propagato: un errore Telegram non deve mai far fallire
+     * il salvataggio dell'anomalia nel DB, che avviene sempre prima.
+     */
+    public void inviaFoto(String chatId, String caption, byte[] fotoBytes) {
+        try {
+            SendPhoto sendPhoto = new SendPhoto();
+            sendPhoto.setChatId(chatId);
+            sendPhoto.setCaption(caption);
+            sendPhoto.setParseMode("Markdown");
+            sendPhoto.setPhoto(new InputFile(new ByteArrayInputStream(fotoBytes), "alert.jpg"));
+            execute(sendPhoto);
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }

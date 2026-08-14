@@ -1,13 +1,14 @@
 package it.uniroma3.siw.model;
 
-import java.time.LocalDate;
-import java.util.Objects;
-// Import necessari per JPA e Validazione (preservati)
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import org.hibernate.validator.constraints.Length;
+
+import java.util.Objects;
+
+// Import necessari per JPA e Validazione (preservati)
 
 @Entity
 public class Anomalia {
@@ -30,6 +31,12 @@ public class Anomalia {
 	// Campo per i dettagli tecnici (es. misurazione dilatazione)
 	@Column(length = 500)
 	private String dettagliTecnici;
+
+	// ❗ NUOVO: immagine del frame al momento dell'anomalia, inviata dalla
+	// pipeline Python (JPEG, gia' decodificato da base64 nel controller).
+	// Stesso pattern gia' usato per Video.file e Image.content (bytea).
+	@Column(columnDefinition = "bytea")
+	private byte[] frameImage;
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -152,4 +159,7 @@ public class Anomalia {
 
 	public java.time.LocalDateTime getDataRisoluzione(){return dataRisoluzione;}
 	public void setDataRisoluzione(java.time.LocalDateTime dataRisoluzione){this.dataRisoluzione = dataRisoluzione;}
+
+	public byte[] getFrameImage(){ return frameImage; }
+	public void setFrameImage(byte[] frameImage){ this.frameImage = frameImage; }
 }

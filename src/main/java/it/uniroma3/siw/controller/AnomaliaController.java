@@ -1,23 +1,23 @@
 package it.uniroma3.siw.controller;
 
 import it.uniroma3.siw.controller.validator.AnomaliaValidator;
-import it.uniroma3.siw.model.Anomalia;
-import it.uniroma3.siw.model.TipoDiAnomalia;
-import it.uniroma3.siw.model.Video;
+import it.uniroma3.siw.model.*;
 import it.uniroma3.siw.service.AnomaliaService;
+import it.uniroma3.siw.service.TrattaService;
 import it.uniroma3.siw.service.UserService;
 import it.uniroma3.siw.service.VideoService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import it.uniroma3.siw.model.Tratta;
-import it.uniroma3.siw.model.User;
-import it.uniroma3.siw.service.TrattaService;
 
 @Controller
 public class AnomaliaController {
@@ -122,6 +122,24 @@ public class AnomaliaController {
             return "redirect:/tratta/" +anomalia.getVideo().getTratta().getId() + "#listaAnomalie";
         }
         return "redirect:/ia/alerts";
+    }
+
+    /**
+     * ❗ NUOVO: serve l'immagine del frame allegata a un'anomalia (se presente).
+     * Stesso pattern gia' usato per VideoController.streamVideo e
+     * UserController.getImage: restituisce direttamente i byte con il
+     * Content-Type corretto, cosi' si puo' usare come src di un <img> in HTML,
+     * es: <img th:src="@{/anomalia/{id}/frame(id=${anomalia.id})}" />
+     */
+    @GetMapping("/anomalia/{id}/frame")
+    public ResponseEntity<byte[]> getFrameImage(@PathVariable Long id) {
+        Anomalia anomalia = anomaliaService.getById(id);
+        if (anomalia == null || anomalia.getFrameImage() == null || anomalia.getFrameImage().length == 0) {
+            return ResponseEntity.notFound().build();
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.IMAGE_JPEG);
+        return new ResponseEntity<>(anomalia.getFrameImage(), headers, HttpStatus.OK);
     }
 
 }
