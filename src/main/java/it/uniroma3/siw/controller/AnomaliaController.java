@@ -92,18 +92,23 @@ public class AnomaliaController {
             return "redirect:/";
         }
         User currentUser = userService.getCurrentUser();
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean isAdmin = auth.getAuthorities().stream().anyMatch(a->a.getAuthority().equals("ADMIN"));
-        if(isAdmin){
-            Tratta trattaAnomalia = anomalia.getTratta();
-            Tratta trattaSupervisor = trattaService.getBySupervisor(currentUser);
-            Tratta trattaOperatore = trattaService.getByOperatore(currentUser);
 
-            boolean appartieneAllaSuaTratta = (trattaAnomalia!=null) && ((trattaSupervisor != null && trattaSupervisor.getId().equals(trattaAnomalia.getId())) || (trattaOperatore!=null && trattaOperatore.getId().equals(trattaAnomalia.getId())));
-            if(!appartieneAllaSuaTratta){
-                return "redirect:/accessDenied";
-            }
+        // Il diritto di chiudere una segnalazione segue la responsabilita'
+        // operativa sulla tratta, non il livello di privilegio nel sistema:
+        // puo' risolvere un'anomalia solo chi e' supervisor o operatore della
+        // tratta a cui quell'anomalia appartiene. Un amministratore, che
+        // fornisce il servizio ma non presidia la linea, non ha una tratta
+        // propria e ricade quindi nel caso generale: non e' abilitato a questa
+        // operazione, senza bisogno di un'eccezione dedicata.
+        Tratta trattaAnomalia = anomalia.getTratta();
+        Tratta trattaSupervisor = trattaService.getBySupervisor(currentUser);
+        Tratta trattaOperatore = trattaService.getByOperatore(currentUser);
+
+        boolean appartieneAllaSuaTratta = (trattaAnomalia!=null) && ((trattaSupervisor != null && trattaSupervisor.getId().equals(trattaAnomalia.getId())) || (trattaOperatore!=null && trattaOperatore.getId().equals(trattaAnomalia.getId())));
+        if(!appartieneAllaSuaTratta){
+            return "redirect:/accessDenied";
         }
+
         boolean nuovoStato = Boolean.TRUE.equals(risolta);
         anomalia.setRisolta(nuovoStato); // imposta false se null
 
