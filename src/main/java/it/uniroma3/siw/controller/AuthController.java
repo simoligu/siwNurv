@@ -61,7 +61,8 @@ public class AuthController {
 	}
 
 	@GetMapping(value = "/" )
-	public String index(Model model) {
+	public String index(Model model,
+						@RequestParam(value = "tratta", required = false) Long trattaSelezionataId) {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		if (authentication instanceof AnonymousAuthenticationToken) {
 			return "index";
@@ -80,19 +81,37 @@ public class AuthController {
 			return "user/supervisor/index";
 		}
 		if (credentials != null && credentials.getRole().equals(Credentials.DEFAULT_ROLE)) {
-			Tratta trattaOperatore = trattaService.getByOperatore(currentUser);
-			/*
-			if(trattaOperatore!=null){
-					// operatore assegnato ad una tratta
-					model.addAttribute("trattaOperatore", trattaOperatore);
-				}
+			// Un operatore puo' essere assegnato a piu' tratte (Tratta.operatori
+			// e' @ManyToMany): la dashboard ne mostra una per volta e lascia
+			// scegliere quale con un selettore.
+			List<Tratta> tratteOperatore = trattaService.getAllByOperatore(currentUser);
 
-			 */
-				model.addAttribute("user", currentUser);
-				model.addAttribute("tratta", trattaOperatore);
-				model.addAttribute("anomalie", anomaliaService.getByTratta(trattaOperatore));
-				return "user/operatore/index";
+			// La tratta richiesta vale solo se e' davvero fra quelle assegnate
+			// all'utente: il controllo impedisce di vedere le anomalie di una
+			// tratta altrui modificando l'indirizzo a mano. In assenza di una
+			// richiesta valida si mostra la prima.
+			Tratta trattaSelezionata = null;
+			if (tratteOperatore != null && !tratteOperatore.isEmpty()) {
+				if (trattaSelezionataId != null) {
+					for (Tratta t : tratteOperatore) {
+						if (t.getId().equals(trattaSelezionataId)) {
+							trattaSelezionata = t;
+							break;
+						}
+					}
+				}
+				if (trattaSelezionata == null) {
+					trattaSelezionata = tratteOperatore.get(0);
+				}
 			}
+
+			model.addAttribute("user", currentUser);
+			model.addAttribute("tratte", tratteOperatore);
+			model.addAttribute("tratta", trattaSelezionata);
+			model.addAttribute("anomalie",
+					trattaSelezionata != null ? anomaliaService.getByTratta(trattaSelezionata) : null);
+			return "user/operatore/index";
+		}
 		return "index";
 	}
 

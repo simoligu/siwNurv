@@ -30,9 +30,28 @@
         <h2 class="fw-bold" style="color: #8B0000;">
             <i class="bi bi-speedometer2 me-2"></i>La tua Dashboard
         </h2>
-        <p class="text-muted" th:if="${tratta != null}">
+        <!-- Una sola tratta assegnata: la si dichiara e basta. -->
+        <p class="text-muted" th:if="${tratta != null and (tratte == null or #lists.size(tratte) le 1)}">
             Tratta assegnata: <strong th:text="${tratta.nome}"></strong>
         </p>
+
+        <!-- Piu' tratte assegnate: si sceglie quale guardare. Il modulo usa GET,
+             cosi' la tratta selezionata resta nell'indirizzo ed e' condivisibile. -->
+        <form th:if="${tratte != null and #lists.size(tratte) gt 1}"
+              method="get" th:action="@{/}" class="d-flex align-items-center gap-2 mt-2">
+            <label for="selettoreTratta" class="text-muted mb-0">Tratta in visualizzazione:</label>
+            <select id="selettoreTratta" name="tratta"
+                    class="form-select form-select-sm w-auto fw-bold"
+                    onchange="this.form.submit()">
+                <option th:each="t : ${tratte}"
+                        th:value="${t.id}"
+                        th:text="${t.nome}"
+                        th:selected="${tratta != null and t.id == tratta.id}"></option>
+            </select>
+            <span class="text-muted small"
+                  th:text="'(' + ${#lists.size(tratte)} + ' tratte assegnate)'"></span>
+        </form>
+
         <p class="text-danger" th:if="${tratta == null}">
             Non sei ancora assegnato a nessuna tratta. Contatta il tuo supervisor.
         </p>

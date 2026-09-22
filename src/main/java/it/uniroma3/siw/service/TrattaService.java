@@ -114,9 +114,21 @@ public class TrattaService {
         return trattaRepository.findBySupervisor(supervisor);
     }
 
+    /** Tutte le tratte su cui l'utente e' assegnato come operatore. */
+    @Transactional
+    public List<Tratta> getAllByOperatore(User operatore){
+        return trattaRepository.findAllByOperatore(operatore);
+    }
+
+    /**
+     * La prima tratta dell'operatore, o null se non ne ha.
+     * Conservato per le pagine che ne mostrano una sola; a differenza della
+     * versione precedente non solleva eccezione se l'operatore ne ha piu' di una.
+     */
     @Transactional
     public Tratta getByOperatore(User operatore){
-        return trattaRepository.findByOperatore(operatore);
+        List<Tratta> tratte = trattaRepository.findAllByOperatore(operatore);
+        return (tratte == null || tratte.isEmpty()) ? null : tratte.get(0);
     }
 
 }

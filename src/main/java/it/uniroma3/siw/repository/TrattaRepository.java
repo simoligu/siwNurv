@@ -46,7 +46,11 @@ public interface TrattaRepository extends CrudRepository<Tratta, Long> {
     @Query(value = "SELECT * FROM tratta WHERE LOWER(REPLACE(nome, ' ', '')) LIKE :name", nativeQuery = true)
     Tratta getByNomeIgnoreCaseSpaceInsensitive(@Param("name") String name);
 
+    // Restituisce una lista perche' Tratta.operatori e' @ManyToMany: lo stesso
+    // utente puo' comparire fra gli operatori di piu' tratte. Con un solo
+    // Tratta come tipo di ritorno, quel caso solleverebbe
+    // IncorrectResultSizeDataAccessException invece di essere gestito.
     @Query("SELECT t FROM Tratta t JOIN t.operatori o WHERE o = :operatore")
-    Tratta findByOperatore(@Param("operatore") User operatore);
+    List<Tratta> findAllByOperatore(@Param("operatore") User operatore);
 
 }

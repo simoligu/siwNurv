@@ -1,6 +1,7 @@
 package it.uniroma3.siw.controller;
 
 import it.uniroma3.siw.controller.validator.AnomaliaValidator;
+import java.util.List;
 import it.uniroma3.siw.model.*;
 import it.uniroma3.siw.service.AnomaliaService;
 import it.uniroma3.siw.service.TrattaService;
@@ -100,11 +101,32 @@ public class AnomaliaController {
         // fornisce il servizio ma non presidia la linea, non ha una tratta
         // propria e ricade quindi nel caso generale: non e' abilitato a questa
         // operazione, senza bisogno di un'eccezione dedicata.
+        // La tratta dell'anomalia puo' non essere valorizzata direttamente:
+        // le anomalie piu' vecchie sono legate solo al video. In quel caso si
+        // risale alla tratta attraverso il video, con la stessa precedenza
+        // usata dal reindirizzamento in fondo a questo metodo.
         Tratta trattaAnomalia = anomalia.getTratta();
-        Tratta trattaSupervisor = trattaService.getBySupervisor(currentUser);
-        Tratta trattaOperatore = trattaService.getByOperatore(currentUser);
+        if(trattaAnomalia == null && anomalia.getVideo() != null){
+            trattaAnomalia = anomalia.getVideo().getTratta();
+        }
 
-        boolean appartieneAllaSuaTratta = (trattaAnomalia!=null) && ((trattaSupervisor != null && trattaSupervisor.getId().equals(trattaAnomalia.getId())) || (trattaOperatore!=null && trattaOperatore.getId().equals(trattaAnomalia.getId())));
+        Tratta trattaSupervisor = trattaService.getBySupervisor(currentUser);
+        List<Tratta> tratteOperatore = trattaService.getAllByOperatore(currentUser);
+
+        boolean appartieneAllaSuaTratta = false;
+        if(trattaAnomalia != null){
+            if(trattaSupervisor != null && trattaSupervisor.getId().equals(trattaAnomalia.getId())){
+                appartieneAllaSuaTratta = true;
+            }
+            if(tratteOperatore != null){
+                for(Tratta t : tratteOperatore){
+                    if(t.getId().equals(trattaAnomalia.getId())){
+                        appartieneAllaSuaTratta = true;
+                        break;
+                    }
+                }
+            }
+        }
         if(!appartieneAllaSuaTratta){
             return "redirect:/accessDenied";
         }
