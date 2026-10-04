@@ -131,5 +131,26 @@ public class TrattaService {
         return (tratte == null || tratte.isEmpty()) ? null : tratte.get(0);
     }
 
+    /**
+     * Vero se l'utente e' responsabile della tratta: supervisor della tratta
+     * oppure operatore assegnato a essa. Un amministratore non ha tratte
+     * proprie: chi deve concedergli l'accesso a tutto lo fa a parte.
+     */
+    @Transactional
+    public boolean isDiCompetenza(User utente, Tratta tratta){
+        if(utente == null || tratta == null) return false;
+        Tratta trattaSupervisor = trattaRepository.findBySupervisor(utente);
+        if(trattaSupervisor != null && trattaSupervisor.getId().equals(tratta.getId())){
+            return true;
+        }
+        List<Tratta> tratteOperatore = trattaRepository.findAllByOperatore(utente);
+        if(tratteOperatore != null){
+            for(Tratta t : tratteOperatore){
+                if(t.getId().equals(tratta.getId())) return true;
+            }
+        }
+        return false;
+    }
+
 }
 

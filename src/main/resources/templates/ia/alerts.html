@@ -54,7 +54,7 @@
                         <th>Gravità</th>
                         <th>Tipo / Dettagli</th>
                         <th>Confidenza</th>
-                        <th>Coordinate BBox</th>
+                        <th title="Rettangolo dell'anomalia nel fotogramma: x, y, larghezza, altezza in pixel">Riquadro (pixel)</th>
                         <!-- ❗ NUOVA COLONNA: miniatura del frame, se presente -->
                         <th>Frame</th>
                         <th>Azioni</th>
@@ -107,7 +107,7 @@
                         <td>
                             <!-- BBox: Visualizza solo se le coordinate BBox sono valide -->
                             <span th:if="${a.w != null and a.w > 0}">
-                                BBox: (<span th:text="${a.x}"></span>, <span th:text="${a.y}"></span>,
+                                (<span th:text="${a.x}"></span>, <span th:text="${a.y}"></span>,
                                 <span th:text="${a.w}"></span>, <span th:text="${a.h}"></span>)
                             </span>
                             <span th:unless="${a.w != null and a.w > 0}">

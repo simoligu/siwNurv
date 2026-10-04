@@ -4,6 +4,7 @@ import it.uniroma3.siw.model.Credentials;
 import it.uniroma3.siw.model.Tratta;
 import it.uniroma3.siw.model.User;
 import it.uniroma3.siw.service.CredentialsService;
+import it.uniroma3.siw.service.TelegramBotListener;
 import it.uniroma3.siw.service.TrattaService;
 import it.uniroma3.siw.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,7 @@ public class SupervisorController {
     @Autowired private TrattaService trattaService;
     @Autowired private UserService userService;
     @Autowired private CredentialsService credentialsService;
+    @Autowired private TelegramBotListener telegramBotListener;
 
     //Admin: pagina per assegnare supervisor a una tratta
     @GetMapping("/admin/tratta/{trattaId}/gestisciSupervisor")
@@ -63,6 +65,7 @@ public class SupervisorController {
         User currentUser = userService.getCurrentUser();
         Tratta tratta = trattaService.getBySupervisor(currentUser);
         model.addAttribute("tratta", tratta);
+        model.addAttribute("nomeBot", telegramBotListener.getNomePubblico());
         model.addAttribute("user", currentUser);
         model.addAttribute("utentiDisponibili", userService.getAllDefaultUsers());
         return "user/supervisor/configuraTelegram";

@@ -2,6 +2,7 @@ package it.uniroma3.siw.service;
 
 import it.uniroma3.siw.model.Acquirente;
 import it.uniroma3.siw.repository.AcquirenteRepository;
+import org.telegram.telegrambots.meta.api.methods.GetMe;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -19,6 +20,7 @@ public class TelegramBotListener extends TelegramLongPollingBot {
 
     private final AcquirenteRepository acquirenteRepository;
     private final String botToken;
+    private volatile String nomePubblico;   // nome reale del bot, letto da Telegram
 
     public TelegramBotListener(AcquirenteRepository acquirenteRepository,
                                @Value("${telegram.bot.token}") String botToken) {
@@ -29,6 +31,23 @@ public class TelegramBotListener extends TelegramLongPollingBot {
     @Override
     public String getBotUsername() {
         return "nurv_train_alert_bot";
+    }
+
+    /**
+     * Nome del bot come lo conosce Telegram (metodo getMe), da mostrare al
+     * supervisor nelle istruzioni: cosi' la pagina indica sempre il bot a cui
+     * appartiene il token, qualunque nome sia scritto nel codice. Se Telegram
+     * non risponde si ripiega sul nome configurato.
+     */
+    public String getNomePubblico() {
+        if (nomePubblico == null) {
+            try {
+                nomePubblico = execute(new GetMe()).getUserName();
+            } catch (TelegramApiException e) {
+                return getBotUsername();
+            }
+        }
+        return nomePubblico;
     }
 
     @Override
@@ -71,6 +90,20 @@ public class TelegramBotListener extends TelegramLongPollingBot {
     public void inviaRisposta(String chatId, String testo) {
         try {
             execute(new SendMessage(chatId, testo));
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Come inviaRisposta, ma interpreta la formattazione Markdown del testo
+     * (grassetto, corsivo), come gia' fa inviaFoto per la didascalia.
+     */
+    public void inviaMessaggioFormattato(String chatId, String testo) {
+        try {
+            SendMessage messaggio = new SendMessage(chatId, testo);
+            messaggio.setParseMode("Markdown");
+            execute(messaggio);
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }

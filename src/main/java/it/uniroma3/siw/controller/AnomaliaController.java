@@ -161,7 +161,25 @@ public class AnomaliaController {
     @GetMapping("/anomalia/{id}/frame")
     public ResponseEntity<byte[]> getFrameImage(@PathVariable Long id) {
         Anomalia anomalia = anomaliaService.getById(id);
-        if (anomalia == null || anomalia.getFrameImage() == null || anomalia.getFrameImage().length == 0) {
+        if (anomalia == null) {
+            return ResponseEntity.notFound().build();
+        }
+        // Controllo sul dato, come per le pagine delle tratte: l'amministratore
+        // consulta tutto, supervisor e operatori solo le anomalie delle proprie
+        // tratte. Per le anomalie piu' vecchie la tratta si ricava dal video.
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(Credentials.ADMIN_ROLE));
+        if (!isAdmin) {
+            Tratta tratta = anomalia.getTratta();
+            if (tratta == null && anomalia.getVideo() != null) {
+                tratta = anomalia.getVideo().getTratta();
+            }
+            if (!trattaService.isDiCompetenza(userService.getCurrentUser(), tratta)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+        }
+        if (anomalia.getFrameImage() == null || anomalia.getFrameImage().length == 0) {
             return ResponseEntity.notFound().build();
         }
         HttpHeaders headers = new HttpHeaders();
