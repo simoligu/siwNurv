@@ -70,8 +70,17 @@ public class SupervisorController {
         model.addAttribute("utentiDisponibili", userService.getAllDefaultUsers());
         return "user/supervisor/configuraTelegram";
     }
+    //il supervisor puo' agire solo sulla propria tratta: l'id ricevuto nella richiesta non basta
+    private boolean isTrattaDelSupervisor(Long trattaId){
+        Tratta trattaSupervisor = trattaService.getBySupervisor(userService.getCurrentUser());
+        return trattaSupervisor != null && trattaSupervisor.getId().equals(trattaId);
+    }
+
     @PostMapping("/supervisor/configuraTelegram")
     public String salvaTelegram(@RequestParam String chatId, @RequestParam String inviteLink, @RequestParam Long trattaId){
+        if(!isTrattaDelSupervisor(trattaId)){
+            return "redirect:/accessDenied";
+        }
         Tratta tratta = trattaService.getById(trattaId);
         tratta.setTelegramChatId(chatId);
         tratta.setTelegramInviteLink(inviteLink);
@@ -82,6 +91,9 @@ public class SupervisorController {
     //metodi per aggiungere e rimuovere operatori
     @PostMapping("/supervisor/tratta/{trattaId}/aggiungiOperatore")
     public String aggiungiOperatore(@PathVariable Long trattaId, @RequestParam Long userId, RedirectAttributes redirectAttributes){
+        if(!isTrattaDelSupervisor(trattaId)){
+            return "redirect:/accessDenied";
+        }
         Tratta tratta = trattaService.getById(trattaId);
         User operatore = userService.getUserById(userId);
         if(tratta.getOperatori().contains(operatore)) {
@@ -98,6 +110,9 @@ public class SupervisorController {
 
     @PostMapping("/supervisor/tratta/{trattaId}/rimuoviOperatore")
     public String rimuoviOperatore(@PathVariable Long trattaId, @RequestParam Long userId, RedirectAttributes redirectAttributes){
+        if(!isTrattaDelSupervisor(trattaId)){
+            return "redirect:/accessDenied";
+        }
         Tratta tratta = trattaService.getById(trattaId);
         User operatore = userService.getUserById(userId);
         if(!tratta.getOperatori().contains(operatore)) {
